@@ -41,6 +41,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set addon version from release tag
+        if: github.event_name == 'release'
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          VERSION="${VERSION#v}"
+          sed -i "s/^version:.*/version: '$VERSION'/" rethink/homeassistant/config.yaml
+
       - name: Docker metadata
         id: meta
         uses: docker/metadata-action@v5
