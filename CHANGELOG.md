@@ -15,8 +15,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   distinguish "committed but waiting" from "actually drying".
 - **Changed** `cycle_start_time` / `cycle_end_time` / `cycle_duration`
   publication to reflect the delayed phase:
-    - `cycle_end_time` = `now + reservation_hours` (the dryer's projected end).
-    - `cycle_start_time` = `cycle_end_time − initial_time` (cycle duration).
-    - `cycle_duration` stays at `0` until the drum actually starts.
-    - When the reservation expires and the dryer transitions to real running,
-      the existing logic takes over (measured start time, live duration).
+  - `cycle_end_time` = `now + reservation_hours` (the dryer's projected end).
+  - `cycle_start_time` = `cycle_end_time − initial_time` (cycle duration).
+  - `cycle_duration` stays at `0` until the drum actually starts.
+  - When the reservation expires and the dryer transitions to real running,
+    the existing logic takes over (measured start time, live duration).
