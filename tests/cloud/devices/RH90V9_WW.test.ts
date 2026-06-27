@@ -58,6 +58,13 @@ const SAMPLE_RESERVATION = buf(
     'AA3830EC001900000000000000000000000000000000000000000000000000001901000000000600000000040000000000000000000000000000C4BB',
 )
 
+// Real capture from a live dryer: Mixed Fabric (cycle=0x19), initial 1h50m,
+// Delayed Start with 17h55m remaining. Bd[10]=0x11=17, Bd[11]=0x37=55.
+// Bd[12]=0x11, Bd[13]=0x37 mirror the same values.
+const SAMPLE_DELAYED_17H55M = buf(
+    'aa3c30ec001902013201321900010102113711370109500000030000006500001902013201321900010102113711370109000000030000006500c7bb',
+)
+
 // Delayed Start — Running (Bd[0]=02) with active 4h reservation (Bd[10]=04).
 // initial_time = 30min (Bd[3]=00, Bd[4]=0x1E). Drum not yet spinning.
 const SAMPLE_DELAYED_START = buf(
@@ -262,6 +269,36 @@ describe(MODEL_ID, () => {
         const parsed = new Date(endTime).getTime()
         const expected = before + 4 * 60 * 60 * 1000
         assert.ok(Math.abs(parsed - expected) < 5000, `cycle_end_time ≈ now + 4h (got ${endTime})`)
+    })
+
+    test('Delayed Start uses Bd[11] minutes for accurate projection (17h55m capture)', () => {
+        const { ha, thinq } = makeDevice()
+        const before = Date.now()
+        thinq.emit('data', SAMPLE_DELAYED_17H55M)
+        const props = ha.devices[DEVICE_ID].properties
+
+        // run_state overlay applied
+        assert.equal(props.run_state, 'Delayed Start')
+        // discrete reservation select still reads whole-hour Bd[10]
+        assert.equal(props.reservation, '17h')
+        // initial_time decoded from Bd[3..4] = 1h50m
+        assert.equal(props.initial_time, 110)
+
+        // end_time = now + 17h55m = now + 1075min
+        const end = new Date(props.cycle_end_time as string).getTime()
+        const expectedEnd = before + (17 * 60 + 55) * 60 * 1000
+        assert.ok(Math.abs(end - expectedEnd) < 5000, `cycle_end_time ≈ now + 17h55m (got ${props.cycle_end_time})`)
+
+        // start_time = end - initial_time = now + 17h55m - 1h50m = now + 16h05m
+        const start = new Date(props.cycle_start_time as string).getTime()
+        const expectedStart = before + (16 * 60 + 5) * 60 * 1000
+        assert.ok(
+            Math.abs(start - expectedStart) < 5000,
+            `cycle_start_time ≈ now + 16h05m (got ${props.cycle_start_time})`,
+        )
+
+        // duration stays 0 until the cycle actually begins
+        assert.equal(props.cycle_duration, 0)
     })
 
     test('Delayed Start projects cycle_start_time = end - initial_time', () => {

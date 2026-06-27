@@ -3,6 +3,21 @@
 All notable changes to this project are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### LG Dryer (RH90V9_WW)
+
+- **Added** minute-accurate decoding for the Delayed Start window. `Bd[11]`
+  was previously marked unknown but is the reservation-minutes countdown
+  paired with `Bd[10]` (hours). Confirmed against a live capture reporting
+  `17h 55m` remaining (`Bd[10]=0x11, Bd[11]=0x37`). `cycle_end_time` and
+  `cycle_start_time` now project from the combined `hours*60 + minutes`
+  total instead of whole hours only, matching what the LG app displays.
+  `Bd[12]/Bd[13]` mirror the same values in observed captures and likely
+  carry the originally committed reservation, pending confirmation.
+- The `reservation` select still exposes whole hours, matching the LG
+  protocol's whole-hour-only set command (`F0 26`).
+
 ## [1.0.4] — 2026-06-27
 
 ### LG Dryer (RH90V9_WW)

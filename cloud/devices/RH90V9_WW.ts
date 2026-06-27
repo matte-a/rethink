@@ -536,7 +536,10 @@ export default class Device extends AABBDevice {
         //   [8]  eco hybrid
         //   [9]  process state
         //   [10] reservation hours (0=off, 3-19=delayed end)
-        //   [11-13] unknown
+        //   [11] reservation minutes — live countdown (0-59); pairs with Bd[10]
+        //        for minute-accurate end-time projection.
+        //   [12-13] appear to mirror Bd[10]/Bd[11] in observed captures;
+        //        suspected "originally committed" hours/minutes but unconfirmed.
         //   [14] flags: bit 0x02=anti-crease
         //   [15] flags: bit 0x01=remote-start
         //   [16-22] unknown/counter
@@ -564,6 +567,8 @@ export default class Device extends AABBDevice {
         const ecoHybrid = Bd[8]
         const processState = Bd[9]
         const reservation = Bd[10]
+        const reservationMin = Bd[11]
+        const reservationTotalMin = reservation * 60 + reservationMin
         const flags14 = Bd[14]
         const flags15 = Bd[15]
         const downloadedCycleId = Bd[23] // SmartCourse/downloaded cycle ID — confirmed inner[54]=Bd[23]
@@ -582,7 +587,7 @@ export default class Device extends AABBDevice {
         // window (drum not spinning, no power draw). Treat that as a distinct
         // 'Delayed Start' state so consumers can tell the difference between
         // "committed, waiting for reservation" and "actually drying".
-        const isDelayed = isRunning && reservation !== 0
+        const isDelayed = isRunning && reservationTotalMin !== 0
 
         // Track cycle start time — only set when the drum actually starts
         // (i.e. Running with no active reservation). Cleared on Off/End.
@@ -619,7 +624,7 @@ export default class Device extends AABBDevice {
         //   Off / Initial  → cleared placeholders.
         if (isDelayed) {
             const now = new Date()
-            const endTime = new Date(now.getTime() + reservation * 60 * 60 * 1000)
+            const endTime = new Date(now.getTime() + reservationTotalMin * 60 * 1000)
             const startTime = new Date(endTime.getTime() - initialTime * 60 * 1000)
             this.publishProperty('cycle_duration', 0)
             this.publishProperty('cycle_start_time', startTime.toISOString())
