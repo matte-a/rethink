@@ -56,10 +56,12 @@ jobs:
               with:
                   context: .
                   file: ./Dockerfile
-                  platforms: linux/amd64,linux/arm64,linux/arm/v7
+                  platforms: linux/amd64,linux/arm64
                   push: true
                   tags: ${{ steps.meta.outputs.tags }}
                   labels: ${{ steps.meta.outputs.labels }}
+                  cache-from: type=gha
+                  cache-to: type=gha,mode=max
 
             - name: Set addon version from release tag
               if: github.event_name == 'release'
