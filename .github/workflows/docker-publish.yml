@@ -14,7 +14,7 @@ permissions:
 
 concurrency:
   group: publish-ghcr-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   publish:
