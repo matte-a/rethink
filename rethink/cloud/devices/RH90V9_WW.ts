@@ -309,7 +309,6 @@ export default class Device extends AABBDevice {
     private lastBdDryLevel: number = 0
     private lastBdEcoHybrid: number = 0
     private lastBdAntiCrease: boolean = false
-    private lastBdReservation: number = 0
 
     constructor(HA: Connection, thinq: Thinq2Device, meta: Metadata) {
         super(HA, thinq)
@@ -592,7 +591,6 @@ export default class Device extends AABBDevice {
             this.lastBdDryLevel = dryLevel
             this.lastBdEcoHybrid = ecoHybrid
             this.lastBdAntiCrease = antiCrease
-            this.lastBdReservation = reservation
         }
 
         this.publishProperty('power', isOff ? 'OFF' : 'ON')
@@ -763,7 +761,7 @@ export default class Device extends AABBDevice {
             let dryLevel = this.lastBdDryLevel
             let ecoHybrid = this.lastBdEcoHybrid
             let antiCrease = this.lastBdAntiCrease
-            let reservation = this.lastBdReservation
+            let reservation = 0
 
             if (mqttValue.trim()) {
                 try {
