@@ -1,0 +1,57 @@
+name: 'Rethink (dev)'
+description: >-
+    Development build of Rethink, tracking master. Pulls
+    ghcr.io/alexw23/rethink:dev which CI publishes on every master push.
+    Do not run alongside the stable Rethink add-on — they share port 443.
+version: 'dev'
+slug: 'rethink-dev'
+url: 'https://github.com/alexw23/rethink/wiki/Installing-rethink%E2%80%90cloud'
+init: false
+
+map:
+    - data
+
+webui: 'http://[HOST]:[PORT:44401]'
+
+watchdog: tcp://[HOST]:4433
+
+ports:
+    443/tcp: 443
+    4433/tcp: 4433
+    44401/tcp: 44401
+    8885/tcp: 8885
+
+ports_description:
+    443/tcp: 'LG Provisioning Port'
+    4433/tcp: 'Rethink HTTPS Port'
+    44401/tcp: 'Rethink Web UI'
+    8885/tcp: 'Rethink MQTT Port'
+
+options:
+    hostname: 'rethink.lgthinq.com'
+    mqtt_url: 'mqtt://core-mosquitto.local.hass.io:1883'
+    discovery_prefix: 'homeassistant'
+    rethink_prefix: 'rethink'
+    https_port: 4433
+    listen_443: true
+    management_port: 44401
+
+schema:
+    hostname: str
+    mqtt_url: str
+    mqtt_user: str
+    mqtt_pass: password
+    discovery_prefix: str
+    rethink_prefix: str
+    https_port: int
+    listen_443: bool
+    management_port: int
+    setup_ip: str?
+    wifi_ssid: str?
+    wifi_password: password?
+
+arch:
+    - aarch64
+    - amd64
+
+image: 'ghcr.io/alexw23/rethink'
