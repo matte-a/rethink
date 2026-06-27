@@ -124,6 +124,7 @@ export const SPINS = [
     1100,
     1200,
     1400,
+    1600,
 ]
 
 export const DRYING_MODES: Record<number, string> = {
@@ -138,3 +139,5 @@ export const DRYING_MODES: Record<number, string> = {
     0xb: 'Delicate',
     0xc: 'Eco',
 }
+
+export const DOSES = ['Off', 'Low', 'Medium', 'High']
