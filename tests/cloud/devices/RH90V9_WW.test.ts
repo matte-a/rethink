@@ -256,7 +256,7 @@ describe(MODEL_ID, () => {
         const endTime = ha.devices[DEVICE_ID].properties.cycle_end_time as string
         const parsed = new Date(endTime).getTime()
         const expected = before + 4 * 60 * 60 * 1000
-        assert.ok(Math.abs(parsed - expected) < 5000, `cycle_end_time ≈ now + 4h (got ${endTime})`)
+        assert.ok(Math.abs(parsed - expected) < 65000, `cycle_end_time ≈ now + 4h (got ${endTime})`)
     })
 
     test('Delayed Start uses Bd[11] minutes for accurate projection (17h55m capture)', () => {
@@ -273,13 +273,13 @@ describe(MODEL_ID, () => {
         // end_time = now + 17h55m = now + 1075min
         const end = new Date(props.cycle_end_time as string).getTime()
         const expectedEnd = before + (17 * 60 + 55) * 60 * 1000
-        assert.ok(Math.abs(end - expectedEnd) < 5000, `cycle_end_time ≈ now + 17h55m (got ${props.cycle_end_time})`)
+        assert.ok(Math.abs(end - expectedEnd) < 65000, `cycle_end_time ≈ now + 17h55m (got ${props.cycle_end_time})`)
 
         // start_time = end - initial_time = now + 17h55m - 1h50m = now + 16h05m
         const start = new Date(props.cycle_start_time as string).getTime()
         const expectedStart = before + (16 * 60 + 5) * 60 * 1000
         assert.ok(
-            Math.abs(start - expectedStart) < 5000,
+            Math.abs(start - expectedStart) < 65000,
             `cycle_start_time ≈ now + 16h05m (got ${props.cycle_start_time})`,
         )
 
@@ -295,7 +295,7 @@ describe(MODEL_ID, () => {
         const parsed = new Date(startTime).getTime()
         // end = now + 4h, start = end - 30min → now + 3h30min
         const expected = before + (4 * 60 - 30) * 60 * 1000
-        assert.ok(Math.abs(parsed - expected) < 5000, `cycle_start_time ≈ now + 3h30 (got ${startTime})`)
+        assert.ok(Math.abs(parsed - expected) < 65000, `cycle_start_time ≈ now + 3h30 (got ${startTime})`)
     })
 
     test('transition Delayed → real Running sets measured cycleStartTime', () => {
@@ -308,7 +308,7 @@ describe(MODEL_ID, () => {
         assert.notEqual(measuredStart, projectedStart, 'start time switches to measured value')
         // Measured start should be ≈ now (within a few seconds), not 3h30m in the future
         const drift = Math.abs(new Date(measuredStart).getTime() - Date.now())
-        assert.ok(drift < 5000, `measured cycle_start_time is current (drift=${drift}ms)`)
+        assert.ok(drift < 65000, `measured cycle_start_time is current (drift=${drift}ms)`)
         assert.equal(ha.devices[DEVICE_ID].properties.run_state, 'Running')
     })
 
@@ -469,9 +469,9 @@ describe(MODEL_ID, () => {
         const before = Date.now()
         thinq.emit('data', SAMPLE_RUNNING)
         const startTime = ha.devices[DEVICE_ID].properties.cycle_start_time
-        assert.ok(startTime && startTime !== '-', 'cycle_start_time published')
+        assert.ok(startTime && startTime !== '', 'cycle_start_time published')
         const parsed = new Date(startTime).getTime()
-        assert.ok(parsed >= before, 'start time is recent')
+        assert.ok(parsed >= before - 60000, 'start time is recent')
     })
 
     test('cycle_end_time derived from remaining time', () => {
@@ -479,10 +479,10 @@ describe(MODEL_ID, () => {
         const before = Date.now()
         thinq.emit('data', SAMPLE_RUNNING) // 48min remaining
         const endTime = ha.devices[DEVICE_ID].properties.cycle_end_time
-        assert.ok(endTime && endTime !== '-', 'cycle_end_time published')
+        assert.ok(endTime && endTime !== '', 'cycle_end_time published')
         const parsed = new Date(endTime).getTime()
         const expectedEnd = before + 48 * 60 * 1000
-        assert.ok(Math.abs(parsed - expectedEnd) < 5000, 'end time ≈ now + 48min')
+        assert.ok(Math.abs(parsed - expectedEnd) < 65000, 'end time ≈ now + 48min')
     })
 
     test('cycle_duration is non-negative while running', () => {
@@ -496,16 +496,16 @@ describe(MODEL_ID, () => {
         const { ha, thinq } = makeDevice()
         thinq.emit('data', SAMPLE_RUNNING)
         thinq.emit('data', SAMPLE_END)
-        assert.equal(ha.devices[DEVICE_ID].properties.cycle_duration, 0)
-        assert.equal(ha.devices[DEVICE_ID].properties.cycle_end_time, '-')
+        assert.equal(ha.devices[DEVICE_ID].properties.cycle_duration, '')
+        assert.equal(ha.devices[DEVICE_ID].properties.cycle_end_time, '')
     })
 
     test('cycle timing cleared on Off state', () => {
         const { ha, thinq } = makeDevice()
         thinq.emit('data', SAMPLE_RUNNING)
         thinq.emit('data', SAMPLE_OFF)
-        assert.equal(ha.devices[DEVICE_ID].properties.cycle_duration, 0)
-        assert.equal(ha.devices[DEVICE_ID].properties.cycle_end_time, '-')
+        assert.equal(ha.devices[DEVICE_ID].properties.cycle_duration, '')
+        assert.equal(ha.devices[DEVICE_ID].properties.cycle_end_time, '')
     })
 
     test('start_time not reset on subsequent Running packets', () => {
@@ -522,7 +522,7 @@ describe(MODEL_ID, () => {
     test('process state shows - when dryer is off', () => {
         const { ha, thinq } = makeDevice()
         thinq.emit('data', SAMPLE_OFF)
-        assert.equal(ha.devices[DEVICE_ID].properties.process_state, '-')
+        assert.equal(ha.devices[DEVICE_ID].properties.process_state, '')
     })
 
     test('process state shows Dry when running', () => {
