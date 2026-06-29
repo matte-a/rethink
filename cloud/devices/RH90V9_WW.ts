@@ -79,7 +79,7 @@ const PROCESS_STATES: Record<number, string> = {
 
 // Bd[6] — error code (modelJson error.valueMapping indices)
 const ERRORS: Record<number, string> = {
-    0: '-',
+    0: '',
     1: 'TE1 (temperature)',
     2: 'TE2 (temperature)',
     4: 'TE4 (temperature)',
@@ -125,6 +125,13 @@ const RESERVATION_IDS: Record<string, number> = Object.fromEntries(
 // Flag bits
 const FLAG14_ANTI_CREASE = 0x02 // Bd[14] ✓
 const FLAG15_REMOTE_START = 0x01 // Bd[15] ✓
+
+// F0 ED handshake — wakes the dryer and prompts a 30 EB state reply.
+// The dryer does NOT push state on connect or on schedule; rethink has to
+// ask. Sent on (re)connect and every POLL_INTERVAL_MS so HA never holds
+// stale state for more than the polling window.
+const POLL_PACKET = Buffer.from('F0ED1121010000001804131400005a', 'hex')
+const POLL_INTERVAL_MS = 5 * 60 * 1000
 
 // Bd[20] — downloaded/smart cycle ID
 // Each entry carries the schema from modelJson SmartCourse so defaults are correct.
@@ -303,6 +310,7 @@ const CYCLE_SCHEMA: Record<number, CycleSchema> = {
 export default class Device extends AABBDevice {
     private lastDownloadedCycleId: number = 0 // tracks last known SmartCourse ID for wake sequence
     private cycleStartTime: Date | null = null // set when state transitions to Running
+    private pollTimer: ReturnType<typeof setInterval> | undefined
 
     // Last known Bd values — used as fallback for start payload missing fields
     private lastBdCycle: number = 0
@@ -423,7 +431,7 @@ export default class Device extends AABBDevice {
                         name: 'Process state',
                         icon: 'mdi:cog-outline',
                         device_class: 'enum',
-                        options: ['-', ...new Set(Object.values(PROCESS_STATES))],
+                        options: ['', ...new Set(Object.values(PROCESS_STATES))],
                     },
                     remaining_time: {
                         platform: 'sensor',
@@ -501,6 +509,32 @@ export default class Device extends AABBDevice {
                 },
             }),
         )
+    }
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
+    // The dryer is silent on (re)connect — it only emits state in response to
+    // an F0 ED poll, or asynchronously when its own internal state changes.
+    // Without polling, HA can hold stale values indefinitely after a reconnect
+    // or a quiet period. start() is invoked by ha_bridge on every fresh
+    // connection (including reconnects, since the Device is rebuilt then), so
+    // we kick a poll immediately and then on a fixed interval.
+
+    private poll() {
+        this.send(POLL_PACKET)
+    }
+
+    start() {
+        super.start()
+        this.poll()
+        this.pollTimer = setInterval(() => this.poll(), POLL_INTERVAL_MS)
+    }
+
+    drop() {
+        if (this.pollTimer !== undefined) {
+            clearInterval(this.pollTimer)
+            this.pollTimer = undefined
+        }
+        super.drop()
     }
 
     // ── State packet processing ───────────────────────────────────────────────
@@ -600,7 +634,7 @@ export default class Device extends AABBDevice {
         this.publishProperty('run_state', isDelayed ? 'Delayed Start' : (STATES[state] ?? `unknown (${state})`))
         this.publishProperty(
             'process_state',
-            isOff ? '-' : (PROCESS_STATES[processState] ?? `unknown (${processState})`),
+            isOff ? '' : (PROCESS_STATES[processState] ?? `unknown (${processState})`),
         )
         this.publishProperty('remaining_time', remainingTime)
         this.publishProperty('initial_time', initialTime)
@@ -614,20 +648,25 @@ export default class Device extends AABBDevice {
         //   Off / Initial  → cleared placeholders.
         if (isDelayed) {
             const now = new Date()
-            const endTime = new Date(now.getTime() + reservationTotalMin * 60 * 1000)
-            const startTime = new Date(endTime.getTime() - initialTime * 60 * 1000)
+            now.setSeconds(0, 0)
+
+            const endTime = new Date(now.getTime() + reservationTotalMin * 60000)
+            const startTime = new Date(endTime.getTime() - initialTime * 60000)
+
             this.publishProperty('cycle_duration', 0)
             this.publishProperty('cycle_start_time', startTime.toISOString())
             this.publishProperty('cycle_end_time', endTime.toISOString())
         } else if (this.cycleStartTime) {
-            const now = new Date()
+            const now = new Date(Math.floor(Date.now() / 60000) * 60000)
+
             const durationMin = Math.floor((now.getTime() - this.cycleStartTime.getTime()) / 60000)
             const endTime = new Date(now.getTime() + remainingTime * 60000)
+
             this.publishProperty('cycle_duration', durationMin)
             this.publishProperty('cycle_end_time', endTime.toISOString())
         } else {
-            this.publishProperty('cycle_duration', 0)
-            this.publishProperty('cycle_end_time', '-')
+            this.publishProperty('cycle_duration', '')
+            this.publishProperty('cycle_end_time', '')
         }
 
         this.publishProperty('error', hasError ? 'ON' : 'OFF')
@@ -638,7 +677,7 @@ export default class Device extends AABBDevice {
             'downloaded_cycle_id',
             downloadedCycleId
                 ? `0x${downloadedCycleId.toString(16)} (${DOWNLOADED_CYCLES[downloadedCycleId]?.label ?? 'unknown'})`
-                : '-',
+                : '',
         )
         this.publishProperty('dry_level', DRY_LEVELS[dryLevel] ?? `unknown (${dryLevel})`)
         this.publishProperty('eco_hybrid', ECO_HYBRID[ecoHybrid] ?? `unknown (${ecoHybrid})`)
@@ -753,7 +792,7 @@ export default class Device extends AABBDevice {
         // Dryer replies with 30 EB compact state snapshot (logged by rethink)
         if (prop === 'ping') {
             console.log('[RH90V9] Sending poll (F0 ED handshake)')
-            this.send(Buffer.from('F0ED1121010000001804131400005a', 'hex'))
+            this.poll()
             return
         }
 
