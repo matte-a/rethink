@@ -2,19 +2,39 @@
 
 ## [Unreleased]
 
+### Added
+
+- LG Fridge (`2REF11EBIVPC4`) support with unit tests.
+- LG A/C alias `RAC_0B0001_WW` mapped to the existing `RAC_056905_WW`
+  driver.
+
+### Fixed
+
+- Management UI now works behind a reverse proxy at any subpath — asset
+  URLs are resolved relative to the page instead of hard-coded to `/`.
+
 ### LG Dryer (RH90V9_WW)
 
-- **Changed** `cycle_start_time` and `cycle_end_time` are now pegged to the
-  start of the minute, so HA's relative-time display ticks predictably
-  instead of jittering by seconds between packets.
+- **Added** 5-minute F0 ED poll so HA never holds stale state after a
+  reconnect or a quiet period. The dryer only emits state in response to
+  a poll or an internal state change, so without this HA could freeze on
+  the last known values indefinitely.
+- **Changed** `cycle_start_time` and `cycle_end_time` are pegged to the
+  minute, using rounding (not floor) so successive packets within a
+  minute don't flip the projected end back and forth by ±1 min. HA's
+  relative-time display now ticks predictably.
 - **Changed** cleared sensor values now publish `"None"` (rendered as
   "Unknown" in HA) instead of `"-"` or empty string: `error_message`,
   `cycle_duration`, `cycle_start_time`, `cycle_end_time`. `process_state`
   publishes `"Off"` when the dryer is off (semantically accurate vs
   unknown).
 - **Fixed** `cycle_start_time` was never republished when a cycle ended,
-  so HA kept showing the last cycle's start time indefinitely. Now
+  so HA kept showing the previous cycle's start time indefinitely. Now
   cleared alongside `cycle_end_time` and `cycle_duration`.
+- **Fixed** `cycle_start_time` is now inferred from
+  `initial_time − remaining_time` on the first Running packet, so a
+  mid-cycle add-on restart shows the actual start time instead of
+  resetting to "now".
 
 ## [1.1.0] — 2026-06-28
 

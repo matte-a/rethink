@@ -70,11 +70,24 @@ jobs:
                   VERSION="${VERSION#v}"
                   sed -i "s/^version:.*/version: '$VERSION'/" homeassistant/config.yaml
 
-            - name: Commit version to master
+            - name: Stamp CHANGELOG and sync to addon folders
+              if: github.event_name == 'release'
+              run: |
+                  VERSION="${{ github.event.release.tag_name }}"
+                  VERSION="${VERSION#v}"
+                  DATE="$(date -u +%Y-%m-%d)"
+                  # Replace the [Unreleased] heading with the released version + date.
+                  sed -i "0,/^## \[Unreleased\].*/s//## [$VERSION] — $DATE/" CHANGELOG.md
+                  # HA doesn't follow symlinks inside add-on folders, so ship real
+                  # copies of the canonical root CHANGELOG.md into each addon.
+                  cp CHANGELOG.md homeassistant/CHANGELOG.md
+                  cp CHANGELOG.md homeassistant-dev/CHANGELOG.md
+
+            - name: Commit version and changelog to master
               if: github.event_name == 'release'
               run: |
                   git config user.name "github-actions[bot]"
                   git config user.email "github-actions[bot]@users.noreply.github.com"
-                  git add homeassistant/config.yaml
-                  git commit -m "Set version to ${{ github.event.release.tag_name }}"
+                  git add homeassistant/config.yaml CHANGELOG.md homeassistant/CHANGELOG.md homeassistant-dev/CHANGELOG.md
+                  git commit -m "Release ${{ github.event.release.tag_name }}: stamp version and changelog"
                   git push origin HEAD:master
