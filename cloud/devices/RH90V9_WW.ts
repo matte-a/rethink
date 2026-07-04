@@ -657,9 +657,13 @@ export default class Device extends AABBDevice {
             this.publishProperty('cycle_start_time', startTime.toISOString())
             this.publishProperty('cycle_end_time', endTime.toISOString())
         } else if (this.cycleStartTime) {
-            const now = new Date(Math.floor(Date.now() / 60000) * 60000)
+            // Round to nearest minute (not floor) so cycle_end_time doesn't flip
+            // between adjacent minutes as sub-second drift crosses the boundary:
+            // dryer reports remaining_time truncated to whole minutes, and rounding
+            // our "now" cancels that offset, keeping the projected end stable.
+            const now = new Date(Math.round(Date.now() / 60000) * 60000)
 
-            const durationMin = Math.floor((now.getTime() - this.cycleStartTime.getTime()) / 60000)
+            const durationMin = Math.round((now.getTime() - this.cycleStartTime.getTime()) / 60000)
             const endTime = new Date(now.getTime() + remainingTime * 60000)
 
             this.publishProperty('cycle_duration', durationMin)
