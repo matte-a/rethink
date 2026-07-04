@@ -616,7 +616,11 @@ export default class Device extends AABBDevice {
         // Track cycle start time — only set when the drum actually starts
         // (i.e. Running with no active reservation). Cleared on Off/End.
         if (isRunning && !isDelayed && !this.cycleStartTime) {
-            this.cycleStartTime = new Date(Math.floor(Date.now() / 60000) * 60000)
+            // Infer start from elapsed portion (initialTime - remainingTime) so a
+            // mid-cycle restart doesn't reset the reported start to "now". Rounding
+            // to the nearest minute keeps this stable across successive packets.
+            const elapsedMin = Math.max(0, initialTime - remainingTime)
+            this.cycleStartTime = new Date(Math.round(Date.now() / 60000) * 60000 - elapsedMin * 60000)
             this.publishProperty('cycle_start_time', this.cycleStartTime.toISOString())
         } else if (isOff || isEnd) {
             this.cycleStartTime = null
