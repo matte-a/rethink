@@ -138,6 +138,33 @@ export default class Device extends AABBDevice {
                         unit_of_measurement: 'min',
                         name: 'Remaining time',
                     },
+                    course_select: {
+                        platform: 'select',
+                        unique_id: '$deviceid-course-select',
+                        state_topic: '$this/course',
+                        command_topic: '$this/course/set',
+                        name: 'Course',
+                        icon: 'mdi:pin-outline',
+                        options: Object.values(COURSES),
+                    },
+                    temp_select: {
+                        platform: 'select',
+                        unique_id: '$deviceid-temp-select',
+                        state_topic: '$this/temp',
+                        command_topic: '$this/temp/set',
+                        name: 'Temperature',
+                        icon: 'mdi:thermometer',
+                        options: TEMPERATURES.filter((a) => a !== undefined).map(String),
+                    },
+                    spin_select: {
+                        platform: 'select',
+                        unique_id: '$deviceid-spin-select',
+                        state_topic: '$this/spin',
+                        command_topic: '$this/spin/set',
+                        name: 'Spin',
+                        icon: 'mdi:autorenew',
+                        options: SPINS.filter((a) => a !== undefined).map(String),
+                    },
                 },
             }),
         )
@@ -187,5 +214,38 @@ export default class Device extends AABBDevice {
 
         if (prop === 'pause') this.send(Buffer.from('F024040100', 'hex'))
         if (prop === 'start') this.send(Buffer.from(mqttValue || 'F024050100', 'hex'))
+
+        if (prop === 'course' || prop === 'spin' || prop === 'temp') {
+            const course = Object.entries(COURSES).find(([, v]) => v === this.getProperty('course'))?.[0] ?? '01'
+            const spin = SPINS.indexOf(Number(this.getProperty('spin')))
+            const temp = TEMPERATURES.indexOf(Number(this.getProperty('temp')))
+
+            const courseVal =
+                prop === 'course' ? (Object.entries(COURSES).find(([, v]) => v === mqttValue)?.[0] ?? course) : course
+            const spinVal = prop === 'spin' ? SPINS.indexOf(Number(mqttValue)) : spin
+            const tempVal = prop === 'temp' ? TEMPERATURES.indexOf(Number(mqttValue)) : temp
+
+            const inner = Buffer.from([
+                0xf0,
+                0x26,
+                Number(courseVal),
+                0x03,
+                spinVal,
+                tempVal,
+                0x01,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x03,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+            ])
+            this.send(inner)
+        }
     }
 }
