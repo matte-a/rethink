@@ -12,7 +12,7 @@ get('device_status').innerText = 'Waiting for rethink connection...'
 
 function connect() {
     clearTimeout(reconnectTimer)
-    let ws = new WebSocket(baseUrl + `device${window.location.search}`)
+    let ws = new WebSocket(baseUrl.origin + `/device${window.location.search}`)
 
     ws.onclose = () => {
         reconnectTimer = setTimeout(connect, 5000)
