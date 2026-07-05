@@ -148,31 +148,19 @@ export default class Device extends AABBDevice {
     }
 
     processAABB(buf: Buffer) {
-        if (buf.length === 80 && buf[0] == 0x20) {
-            const status = buf[43]
-            const time_remain = buf[44] * 60 + buf[45]
-            const time_initial = buf[46] * 60 + buf[47]
-            const course = buf[48]
-            const error = buf[49]
-            const spin = buf[51]
-            const temp = buf[52]
-            const lock_status = buf[58]
-            const cycles = buf[64]
-            const energy = buf[71] * 256 + buf[72]
+        if (buf.length === 80 && buf[0] == 0x20 && buf[1] == 0xec) {
+            const status = buf[4]
+            const time_remain = buf[5] * 60 + buf[6]
+            const time_initial = buf[7] * 60 + buf[8]
+            const course = buf[11]
+            const temp = buf[12]
 
             this.publishProperty('power', status > 0 ? 'ON' : 'OFF')
-            this.publishProperty('error_message', ERRORS[error] ?? 'unknown') // publish message before set error state
-            this.publishProperty('error', error ? 'ON' : 'OFF')
             this.publishProperty('status', STATES[status] ?? 'unknown')
             this.publishProperty('course', COURSES[course] ?? 'unknown')
-            this.publishProperty('spin', SPINS[spin] ?? 'unknown')
             this.publishProperty('temp', TEMPERATURES[temp] ?? 'unknown')
-            this.publishProperty('cycles', cycles)
-            this.publishProperty('remote_start', lock_status & 2 ? 'ON' : 'OFF')
-            this.publishProperty('door_lock', !(lock_status & 0x40) ? 'ON' : 'OFF') // inverted logic, off=locked
             this.publishProperty('initial_time', time_initial)
             this.publishProperty('remaining_time', time_remain)
-            this.publishProperty('energy', energy)
         }
     }
 
