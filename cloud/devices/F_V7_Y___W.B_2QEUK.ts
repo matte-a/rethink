@@ -213,22 +213,17 @@ export default class Device extends AABBDevice {
         }
 
         if (prop === 'pause') this.send(Buffer.from('F024040100', 'hex'))
-        if (prop === 'start') this.send(Buffer.from(mqttValue || 'F024050100', 'hex'))
-
-        if (prop === 'course' || prop === 'spin' || prop === 'temp') {
-            const course = Object.entries(COURSES).find(([, v]) => v === this.getProperty('course'))?.[0] ?? '01'
-            const spin = SPINS.indexOf(Number(this.getProperty('spin')))
-            const temp = TEMPERATURES.indexOf(Number(this.getProperty('temp')))
-
-            const courseVal =
-                prop === 'course' ? (Object.entries(COURSES).find(([, v]) => v === mqttValue)?.[0] ?? course) : course
-            const spinVal = prop === 'spin' ? SPINS.indexOf(Number(mqttValue)) : spin
-            const tempVal = prop === 'temp' ? TEMPERATURES.indexOf(Number(mqttValue)) : temp
+        if (prop === 'start') {
+            this.send(Buffer.from(mqttValue || 'F024050100', 'hex'))
+            const courseEntry = Object.entries(COURSES).find(([, v]) => v === this.getProperty('course'))
+            const courseVal = Number(courseEntry?.[0] ?? 0x01)
+            const spinVal = SPINS.indexOf(Number(this.getProperty('spin')))
+            const tempVal = TEMPERATURES.indexOf(Number(this.getProperty('temp')))
 
             const inner = Buffer.from([
                 0xf0,
                 0x26,
-                Number(courseVal),
+                courseVal,
                 0x03,
                 spinVal,
                 tempVal,
