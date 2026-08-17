@@ -211,14 +211,16 @@ export default class Device extends AABBDevice {
                 this.send(Buffer.from('F024010100', 'hex'))
             }
         }
+        if (prop === 'course') this.publishProperty('course_set', mqttValue)
+        if (prop === 'temp') this.publishProperty('temp_set', mqttValue)
+        if (prop === 'spin') this.publishProperty('spin_set', mqttValue)
 
         if (prop === 'pause') this.send(Buffer.from('F024040100', 'hex'))
         if (prop === 'start') {
-            this.send(Buffer.from(mqttValue || 'F024050100', 'hex'))
-            const courseEntry = Object.entries(COURSES).find(([, v]) => v === this.getProperty('course'))
+            const courseEntry = Object.entries(COURSES).find(([, v]) => v === this.getProperty('course_set'))
             const courseVal = Number(courseEntry?.[0] ?? 0x01)
-            const spinVal = SPINS.indexOf(Number(this.getProperty('spin')))
-            const tempVal = TEMPERATURES.indexOf(Number(this.getProperty('temp')))
+            const spinVal = SPINS.indexOf(Number(this.getProperty('spin_set')))
+            const tempVal = TEMPERATURES.indexOf(Number(this.getProperty('temp_set')))
 
             const inner = Buffer.from([
                 0xf0,
