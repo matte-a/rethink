@@ -4,8 +4,9 @@ import { type Connection } from '../homeassistant'
 import { type Metadata } from '../thinq'
 import { allowExtendedType } from '@/util/casting'
 import AABBDevice from './aabb_device'
-import { ERRORS, STATES, COURSES, TEMPERATURES, SPINS } from './washer_common'
+import { ERRORS, STATES, COURSES, TEMPERATURES } from './washer_common'
 
+const SPINS = [undefined, 0, 400, 800, 1000, 1200, 1400]
 export default class Device extends AABBDevice {
     constructor(HA: Connection, thinq: Thinq2Device, meta: Metadata) {
         super(HA, thinq)
