@@ -104,7 +104,7 @@ export default class Device extends AABBDevice {
                         unique_id: '$deviceid-remote_start',
                         state_topic: '$this/remote_start',
                         name: 'Remote start',
-                        icon: 'mdi:play-circle-outline',
+                        icon: 'mdi:remote',
                     },
                     door_lock: {
                         platform: 'binary_sensor',
@@ -187,6 +187,8 @@ export default class Device extends AABBDevice {
             const lock_status = buf[58]
             const cycles = buf[64]
             const energy = buf[71] * 256 + buf[72]
+
+            console.log('buf[52]:', buf[52], 'buf[13]:', buf[13])
 
             this.publishProperty('power', status > 0 ? 'ON' : 'OFF')
             this.publishProperty('error_message', ERRORS[error] ?? 'unknown') // publish message before set error state
