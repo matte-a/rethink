@@ -5,6 +5,7 @@ import { type Metadata } from '../thinq'
 import { allowExtendedType } from '@/util/casting'
 import AABBDevice from './aabb_device'
 import { ERRORS, STATES, COURSES, TEMPERATURES } from './washer_common'
+import log from '@/util/logging'
 
 const SPINS = [undefined, 0, 400, 800, 1000, 1200, 1400]
 export default class Device extends AABBDevice {
@@ -223,8 +224,8 @@ export default class Device extends AABBDevice {
             const spinVal = SPINS.indexOf(Number(this.getProperty('spin_set')))
             const tempVal = TEMPERATURES.indexOf(Number(this.getProperty('temp_set')))
 
-            console.log('temp_set:', this.getProperty('temp_set'))
-            console.log('tempVal:', TEMPERATURES.indexOf(Number(this.getProperty('temp_set'))))
+            log('WASHER', 'temp_set:', this.getProperty('temp_set'))
+            log('WASHER', 'tempVal:', TEMPERATURES.indexOf(Number(this.getProperty('temp_set'))))
 
             const inner = Buffer.from([
                 0xf0,
