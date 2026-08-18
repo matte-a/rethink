@@ -223,6 +223,9 @@ export default class Device extends AABBDevice {
             const spinVal = SPINS.indexOf(Number(this.getProperty('spin_set')))
             const tempVal = TEMPERATURES.indexOf(Number(this.getProperty('temp_set')))
 
+            console.log('temp_set:', this.getProperty('temp_set'))
+            console.log('tempVal:', TEMPERATURES.indexOf(Number(this.getProperty('temp_set'))))
+
             const inner = Buffer.from([
                 0xf0,
                 0x26,
