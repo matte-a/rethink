@@ -188,8 +188,6 @@ export default class Device extends AABBDevice {
             const cycles = buf[64]
             const energy = buf[71] * 256 + buf[72]
 
-            console.log('buf[52]:', buf[52], 'buf[13]:', buf[13])
-
             this.publishProperty('power', status > 0 ? 'ON' : 'OFF')
             this.publishProperty('error_message', ERRORS[error] ?? 'unknown') // publish message before set error state
             this.publishProperty('error', error ? 'ON' : 'OFF')
