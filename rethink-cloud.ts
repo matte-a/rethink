@@ -1,4 +1,5 @@
 import express from 'express'
+import stripJsonComments from 'strip-json-comments'
 import { mkdirSync, readFileSync } from 'node:fs'
 import * as https from 'node:https'
 import { spawnSync } from 'node:child_process'
@@ -13,7 +14,7 @@ import { DeviceAcceptor as T1Acceptor } from './cloud/thinq1/device'
 import { DeviceAcceptor as T2Acceptor } from './cloud/thinq2/device'
 import { Connection as HA_connection } from './cloud/homeassistant'
 import HA_bridge from './cloud/ha_bridge'
-import { Config, CA } from './util/config'
+import { normalize as normalizeConfig, RawConfig, CA } from './util/config'
 import * as Management from './management'
 
 import log, { setFilter as setLogFilter } from './util/logging'
@@ -23,7 +24,7 @@ import { JSONStorage } from './bridge/state'
 
 const configPath = resolve(process.argv[2] ?? './config.json')
 const configDir = dirname(configPath)
-const config = JSON.parse(readFileSync(configPath).toString('utf-8')) as Config
+const config = normalizeConfig(JSON.parse(stripJsonComments(readFileSync(configPath).toString('utf-8'))) as RawConfig)
 
 config.ca_key_file = resolve(configDir, config.ca_key_file)
 config.ca_cert_file = resolve(configDir, config.ca_cert_file)
@@ -89,9 +90,9 @@ function t1setup(manager: DeviceManager) {
         res.json({})
     })
 
-    https.createServer(ca, app).listen(config.thinq1_https_port ?? 46030)
+    https.createServer(ca, app).listen(config.thinq1_https_port.bind, config.thinq1_https_port.address)
     const acceptor = new T1Acceptor()
-    tls.createServer(ca, acceptor.accept.bind(acceptor)).listen(config.thinq1_port ?? 47878)
+    tls.createServer(ca, acceptor.accept.bind(acceptor)).listen(config.thinq1_port.bind, config.thinq1_port.address)
     acceptor.on('newDevice', manager.accept.bind(manager))
 }
 
@@ -114,8 +115,8 @@ function t2setup(manager: DeviceManager) {
         res.end('')
     })
 
-    https.createServer(ca, app).listen(config.https_port)
-    if (config.listen_443 && config.https_port !== 443) {
+    https.createServer(ca, app).listen(config.https_port.bind, config.https_port.address)
+    if (config.listen_443 && config.https_port.bind !== 443) {
         const server443 = https.createServer(ca, app)
         server443.on('error', (err: NodeJS.ErrnoException) => {
             if (err.code === 'EACCES')
@@ -131,9 +132,9 @@ function t2setup(manager: DeviceManager) {
     // internal MQTT broker
     const broker = new Broker()
 
-    if (config.mqtt !== false) {
-        tls.createServer(ca, broker.accept.bind(broker)).listen(config.mqtts_port)
-        net.createServer({}, broker.accept.bind(broker)).listen(config.mqtt_port)
+    if (config.mqtt) {
+        tls.createServer(ca, broker.accept.bind(broker)).listen(config.mqtts_port.bind, config.mqtts_port.address)
+        net.createServer({}, broker.accept.bind(broker)).listen(config.mqtt_port.bind, config.mqtt_port.address)
     }
 
     const acceptor = new T2Acceptor(broker)
@@ -155,6 +156,7 @@ if (config.bridge) {
     bridge = new Bridge(storage, manager)
 }
 
-if (config.management_port) Management.app(ha, manager, bridge).listen(config.management_port!)
+if (config.management_port)
+    Management.app(ha, manager, bridge).listen(config.management_port.bind, config.management_port.address)
 
 console.log('Rethink cloud ready')

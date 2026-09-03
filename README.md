@@ -16,7 +16,7 @@ aid, or simply to allow the user to still use the original LG app alongside Home
 The following appliances are currently supported in rethink:
 
 - Air Conditioners:
-    - 👍 LG DualCool family (Standard 2, Deluxe with and without air purifier, etc.) wall-mounted Air Conditioner IDUs - high level of support. What's missing are mostly some features of higher-end models, energy reporting for Single devices and more diagnostic coverage,
+    - 👍 LG DualCool family (Standard 2, Deluxe with and without air purifier, etc.) wall-mounted Air Conditioner IDUs - high level of support. What's missing are mostly some features of higher-end models and more diagnostic coverage,
     - 👍 LW1822HRSM, Smart Window Air Conditioner - mostly working,
     - 👍 LP1022FVSM Portable Air Conditioner - mostly working,
 - Fridges:
@@ -27,10 +27,27 @@ The following appliances are currently supported in rethink:
 - Washing Machines:
     - 🫤 (model name unknown) Washing Machine - preliminary support
     - 👍 F2J7HG1W, Washing Machine - mostly working,
+    - 🫤 F4WV508S2E, Front-Loading Washing Machine - preliminary support
     - 🫤 F4WV709P1E, Front-Loading Washing Machine - preliminary support
     - 🫤 TW4V9RW9W - preliminary support
-- Dryers
+    - 👍 F4X7511TWS (VCDWL2QEUK), Front-Load Washing Machine - mostly working
+    - 🫤 WT7300CW - preliminary support
+    - 👍 WM3900HBA (F3L2CYU\_\_), Front-Load Washing Machine - mostly working
+    - 👍 FV1413H2B, Washing Machine - mostly working,
+    - 👍 F3L7CYK5W_US_WIFI, Front-Load Washing Machine - mostly working
+- Dryers:
     - 👍 FDV709GN - full support
+    - 🫤 DLE7300WE - preliminary support
+    - 👍 DLEX3900B (RV13B6BSD_D_US_WIFI), Electric Dryer - mostly working
+    - 👍 RV13B6ES_D_US_WIFI, Electric Dryer - mostly working
+- WashTowers (combined washer+dryer):
+    - 👍 WKEX200HBA (WTL_FXU_BDV_NA_01), WashTower - mostly working
+- Dehumidifiers
+    - 👍 MD19GQGE0, Smart Dehumidifier - mostly working
+- Range Hoods:
+    - 👍 HCED3015D (STUDIO_HOOD), Generic identifier and probably works with multiple models. Working.
+- Stylers:
+    - 👍 S5BBP (ST_B_E4H01Y_APL), Styler - mostly working
 
 The supported appliances can be used "out of the box" with HomeAssistant or another compatible MQTT consumer.  
 Appliances not listed above can still be used with the bridge mode, but they will not be translated to MQTT. Contributions are welcome!

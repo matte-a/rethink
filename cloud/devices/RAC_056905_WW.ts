@@ -17,9 +17,9 @@ export default class Device extends TLVDevice {
     powerStatePrev?: boolean
     modeChangeHooks: PowerModeChangeHook[] = []
     modePrev?: string
-    airClean: boolean = false
-    jetMode: boolean = false
-    energySave: boolean = false
+    airClean: boolean | undefined
+    jetMode: boolean | undefined
+    energySave: boolean | undefined
     tlvBlacklistDisableTimer: ReturnType<typeof setTimeout> | undefined
     increasedQueryIntervalTimeout: ReturnType<typeof setTimeout> | undefined
     filterUsedTime: number = 0
@@ -27,6 +27,7 @@ export default class Device extends TLVDevice {
     filterChangedDate: number = 0
     filterInitialQueryTimeout: ReturnType<typeof setTimeout> | undefined
     filterQueryTimer: ReturnType<typeof setInterval> | undefined
+    filterDoReset: boolean = false
 
     constructor(HA: Connection, thinq: Thinq2Device, meta: Metadata) {
         super(HA, thinq)
@@ -148,6 +149,11 @@ export default class Device extends TLVDevice {
         } else {
             // if this was not the initial query just update the HA values
             this.publishFilterData()
+        }
+
+        if (this.filterDoReset) {
+            this.filterDoReset = false
+            this.sendFilterReset()
         }
     }
 
@@ -295,12 +301,23 @@ export default class Device extends TLVDevice {
             comp: 'climate',
             readable: false,
             write_xform: (val) => (val === 'ON' ? 1 : 0),
-            write_attach: (raw) => (raw ? [0x1f9, 0x1fa] : []),
+            /*  0x1f7 is not necessary for ON but does not seem to hurt either */
+            write_attach: (raw) => (raw ? [0x1f9, 0x1fa, 0x1fe] : []),
             read_xform: (raw) => (raw ? 'ON' : 'OFF'),
             read_callback: (val) => {
-                // update 'mode' instead
+                /*
+                 * Update 'mode' instead.
+                 *
+                 * This means that power state change will effectively also
+                 * call mode change hooks since mode will switch between 'off'
+                 * and the actual set mode.
+                 */
                 this.processKeyValue(0x1f9, this.raw_clip_state[0x1f9])
 
+                /*
+                 * Call these hooks only after updating 'mode' in case
+                 * they depend on it being correctly set.
+                 */
                 const powerState = val === 'ON'
                 if (this.powerStatePrev !== powerState) for (const hook of this.powerChangeHooks) hook()
                 this.powerStatePrev = powerState
@@ -401,7 +418,6 @@ export default class Device extends TLVDevice {
                     }
                     return modes2clip[val]
                 },
-                write_attach: [0x1f9, 0x1fa],
             })
         }
 
@@ -442,7 +458,6 @@ export default class Device extends TLVDevice {
                     }
                     return modes2clip[val]
                 },
-                write_attach: [0x1f9, 0x1fa],
             })
         }
 
@@ -527,6 +542,21 @@ export default class Device extends TLVDevice {
          * regardless of the actual compressor speed,
          * which makes it of limited usability.
          */
+
+        // 0x2fb is the target fan RPM, while this is the current RPM
+        this.addOptionalSensorField(
+            config,
+            0x331,
+            'fanrpm',
+            'Fan RPM',
+            'mdi:fan',
+            {
+                state_class: 'measurement',
+                unit_of_measurement: 'rpm',
+                suggested_display_precision: 0,
+            },
+            (raw) => raw * 10,
+        )
 
         if (this.raw_clip_state[0x2cc] & 1) {
             this.addModeDependentConfigSwitchField(
@@ -621,9 +651,6 @@ export default class Device extends TLVDevice {
             )
         }
 
-        this.powerChangeHooks.push(() => {
-            this.updateClimateAction()
-        })
         this.modeChangeHooks.push(() => {
             this.updateClimateAction()
         })
@@ -680,7 +707,11 @@ export default class Device extends TLVDevice {
                 comp: '',
                 write_xform: (val) => (val === 'PRESS' ? 1 : 0),
                 write_callback: (val) => {
-                    if (val === 1) this.sendFilterReset()
+                    if (val === 1) {
+                        this.filterDoReset = true
+                        // do a query first to get the most recent pre-reset values
+                        this.sendFilterQuery()
+                    }
                     return false
                 },
             }
@@ -836,11 +867,8 @@ export default class Device extends TLVDevice {
          * This value needs to be written at each power up in heat/cool mode,
          * but in a separate message.
          */
-        this.powerChangeHooks.push(() => {
-            if (this.getPowerTLV() === 0) return
-            this.setProperty(name + '-', this.jetMode ? 'ON' : 'OFF')
-        })
         this.modeChangeHooks.push(() => {
+            if (this.jetMode === undefined) return
             this.setProperty(name + '-', this.jetMode ? 'ON' : 'OFF')
         })
     }
@@ -934,7 +962,7 @@ export default class Device extends TLVDevice {
         name: string,
         desc: string,
         icon: string,
-        field_name: 'airClean' | 'jetMode' | 'energySave',
+        field_name: 'airClean' | 'energySave',
         check_mode?: CheckMode,
     ) {
         const comp = {
@@ -972,17 +1000,19 @@ export default class Device extends TLVDevice {
             },
         })
 
-        this.powerChangeHooks.push(() => {
-            if (this.getPowerTLV() === 0) return
-            /*
-             * This value needs to be written at each power up,
-             * but in a separate message.
-             */
-            this.setProperty(name + '-', this[field_name] ? 'ON' : 'OFF')
-        })
-
         if (!!check_mode) {
             this.modeChangeHooks.push(() => {
+                if (this[field_name] === undefined) return
+                this.setProperty(name + '-', this[field_name] ? 'ON' : 'OFF')
+            })
+        } else {
+            this.powerChangeHooks.push(() => {
+                if (this[field_name] === undefined) return
+                if (this.getPowerTLV() === 0) return
+                /*
+                 * This value needs to be written at each power up,
+                 * but in a separate message.
+                 */
                 this.setProperty(name + '-', this[field_name] ? 'ON' : 'OFF')
             })
         }

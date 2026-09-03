@@ -9,9 +9,9 @@ export function routes(config: Config, ca: CA) {
         res.json({
             resultCode: '0000',
             result: {
-                apiServer: 'https://' + config.hostname + ':' + config.https_port,
-                mqttServer: 'ssl://' + config.hostname + ':' + config.mqtts_port,
-                httpsServer: 'https://' + config.hostname + ':' + config.https_port,
+                apiServer: 'https://' + config.hostname + ':' + config.https_port.advertise,
+                mqttServer: 'ssl://' + config.hostname + ':' + config.mqtts_port.advertise,
+                httpsServer: 'https://' + config.hostname + ':' + config.https_port.advertise,
             },
         })
     })

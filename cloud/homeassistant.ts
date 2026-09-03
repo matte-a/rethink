@@ -74,8 +74,10 @@ export class Connection extends TypedEmitter<ConnectionEvents> {
 
         // homeassistant/status
         this.client.subscribe(this.config.discovery_prefix + '/status')
-        // rethink/ID/PROPERTY/set
+        // rethink/ID/PROPERTY/set, most devices use single-segment property names.
         this.client.subscribe(this.config.rethink_prefix + '/+/+/set')
+        // Two-in-one devices (e.g. washer+dryer) namespace by unit: rethink/ID/UNIT/PROPERTY/set
+        this.client.subscribe(this.config.rethink_prefix + '/+/+/+/set')
 
         this.client.subscribe(this.config.rethink_prefix + '/+/availability')
         this.client.publish(this.config.rethink_prefix + '/availability', Buffer.from('online'), { retain: true })
@@ -106,9 +108,11 @@ export class Connection extends TypedEmitter<ConnectionEvents> {
 
             if (topic.startsWith(this.config.rethink_prefix + '/')) {
                 const pathelements = topic.substring(this.config.rethink_prefix.length + 1).split('/')
-                // rethink/+/+/set
-                if (pathelements.length === 3 && pathelements[2] === 'set') {
-                    const [id, prop] = pathelements
+                // rethink/ID/PROPERTY/set (single-segment) or rethink/ID/UNIT/PROPERTY/set (two-in-one devices)
+                // prop is everything between the ID and the trailing /set, joined back with /
+                if (pathelements.length >= 3 && pathelements[pathelements.length - 1] === 'set') {
+                    const id = pathelements[0]
+                    const prop = pathelements.slice(1, -1).join('/')
                     this.emit('setProperty', id, prop, message.toString('utf-8'))
                 }
 
@@ -199,4 +203,13 @@ export type ClimateComponent = ComponentInfo & {
     fan_modes?: string[]
     swing_modes?: string[]
     swing_horizontal_modes?: string[]
+}
+
+export type HumidifierComponent = ComponentInfo & {
+    platform: 'humidifier'
+    device_class?: 'dehumidifier' | 'humidifier'
+    modes?: string[]
+    min_humidity?: number
+    max_humidity?: number
+    current_humidity_topic?: string
 }

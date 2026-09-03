@@ -1,5 +1,42 @@
 # Changelog
 
+## [1.2.0] — 2026-08-30
+
+Merged upstream `anszom/rethink` again, bringing a batch of new device
+support, a config port refactor, and various robustness fixes.
+
+### Added
+
+- New device support pulled in from upstream: LG dehumidifier
+  (`DHUM_056905_WW`), front-load washers (`F3L2CYU__` / WM3900HBA,
+  `F3L7CYK5W_US_WIFI`, `VCDWL2QEUK` / F4X7511TWS, `Y_V8_F___W.B_2QEUK`),
+  electric dryers (`RV13B6BSD_D_US_WIFI`, `RV13B6ES_D_US_WIFI`,
+  `RV13U6AM8W_D_US_WIFI`), a WashTower (`WTL_FXU_BDV_NA_01`), the LG
+  Studio Hood (`STUDIO_HOOD`), the LG Styler (`ST_B_E4H01Y_APL`), and
+  `T1789EFH_F`.
+- Ports can now be configured as `{ bind, advertise, address }` objects,
+  so the bind port/interface can differ from the port advertised to
+  devices (useful behind port forwarding or a reverse proxy). Plain
+  numbers still work.
+- Pre-commit hook (`scripts/sync-changelog.mjs`) that keeps the add-on
+  `CHANGELOG.md` copies in sync with the root file.
+- MQTT-level support for multi-unit devices, mobile-friendly management
+  UI, owner-assigned appliance names in the device list, and
+  `CONTRIBUTING.md`.
+
+### Fixed
+
+- Assorted upstream robustness fixes: OAuth2 refresh now requires both
+  tokens, ThinQ1 connections destroy the socket on timeout, framing
+  rejects negative/oversized lengths, and bridge subprocess capture is
+  bounded and time-limited.
+
+### Preserved across the merge
+
+- Fork-specific HTTPS handling (`listen_443` extra `:443` listener +
+  Home Assistant add-on `run.sh` flow) was carried onto upstream's new
+  port model.
+
 ## [1.1.1] — 2026-07-04
 
 ### Added
