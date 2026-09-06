@@ -6,6 +6,8 @@ import { allowExtendedType } from '@/util/casting'
 import AABBDevice from './aabb_device'
 import { ERRORS, STATES, COURSES, TEMPERATURES, SPINS } from './washer_common'
 
+export const TEMPERATURES_SELECT = [undefined, 10, 20, 30, 40, 60, 95]
+const SPINS_SELECT = [0, 400, 800, 1000, 1200, 1400] // solo quelle supportate dalla tua lavatrice
 export default class Device extends AABBDevice {
     constructor(HA: Connection, thinq: Thinq2Device, meta: Metadata) {
         super(HA, thinq)
@@ -154,7 +156,7 @@ export default class Device extends AABBDevice {
                         command_topic: '$this/temp/set',
                         name: 'Temperature select',
                         icon: 'mdi:thermometer',
-                        options: TEMPERATURES.filter((a) => a !== undefined).map(String),
+                        options: TEMPERATURES_SELECT.filter((a) => a !== undefined).map(String),
                     },
                     spin_select: {
                         platform: 'select',
@@ -163,7 +165,7 @@ export default class Device extends AABBDevice {
                         command_topic: '$this/spin/set',
                         name: 'Spin select',
                         icon: 'mdi:autorenew',
-                        options: SPINS.filter((a) => a !== undefined).map(String),
+                        options: SPINS_SELECT.filter((a) => a !== undefined).map(String),
                     },
                 },
             }),
